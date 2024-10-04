@@ -8,8 +8,8 @@ sns.set(style='dark')
 
 # Memuat dataset
 def load_data():
-    day_df = pd.read_csv('day_df.csv')
-    hour_df = pd.read_csv('hour_df.csv')
+    day_df = pd.read_csv('dashboard/day_df.csv')
+    hour_df = pd.read_csv('dashboard/hour_df.csv')
     return day_df, hour_df
 
 day_df, hour_df = load_data()
