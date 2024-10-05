@@ -8,8 +8,8 @@ sns.set(style='darkgrid')
 
 # Fungsi untuk memuat dataset
 def load_dataset():
-    day_data = pd.read_csv('day_df.csv')
-    hour_data = pd.read_csv('hour_df.csv')
+    day_data = pd.read_csv('dashboard/day_df.csv')
+    hour_data = pd.read_csv('dashboard/hour_df.csv')
     return day_data, hour_data
 
 day_data, hour_data = load_dataset()
