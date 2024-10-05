@@ -43,7 +43,7 @@ def filter_by_date(dataframe, start_date, end_date):
 filtered_day_data = filter_by_date(day_data, start_date_input, end_date_input)
 
 # Judul utama halaman
-st.title('Dinamika Penyewaan Sepeda: Penelitian Mendalam tentang Tren Penggunaan dan Pola Musiman')
+st.title('Analisis Penyewaan Sepeda: Pola Penggunaan, Pengaruh Cuaca, dan Tren Musiman')
 
 # Mendapatkan informasi penyewaan sepeda berdasarkan tanggal yang dipilih
 def retrieve_rent_info(dataframe):
@@ -67,44 +67,56 @@ st.write("")
 st.write("")
 
 # Membuat header untuk visualisasi penggunaan sepeda per jam
-st.header('Distribusi Penyewaan Sepeda per Jam')
+st.header('Pola Penyewaan Sepeda pada Hari Libur dan Hari Kerja')
 
 # Fungsi untuk memvisualisasikan distribusi penyewaan sepeda berdasarkan jam
-def visualize_usage_by_hour(hour_dataframe):
-    plt.figure(figsize=(12, 6))
-    sns.lineplot(x='hr', y='count', data=hour_dataframe, marker='o', color='b')
-    plt.title('Distribusi Penyewaan Sepeda per Jam', fontsize=16)
-    plt.xlabel('Jam (dalam 24 jam)', fontsize=14)
-    plt.ylabel('Jumlah Pengguna (per jam)', fontsize=14)
-    plt.grid(True)
-    plt.tight_layout()
+def visualize_usage(hour_dataframe):
+    # Membuat grup berdasarkan hari libur dan hari kerja
+    day_data['holiday'] = day_data['holiday'].astype('category')
+    day_data['workingday'] = day_data['workingday'].astype('category')
+
+    # Membuat plot untuk membandingkan jumlah pengguna sepeda pada hari libur dan hari kerja
+    plt.figure(figsize=(10,6))
+    sns.set_style('whitegrid')
+    sns.lineplot(x='dateday', y='count', hue='holiday', data=day_data, palette=['#000000', '#FFD700'])
+    plt.title('Pola Penggunaan Sepeda pada Hari Libur dan Hari Kerja', fontsize=18)
+    plt.xlabel('Tanggal', fontsize=14)
+    plt.ylabel('Jumlah Pengguna Sepeda', fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.legend(title='Hari Libur/Hari Kerja', fontsize=12)
+    plt.show()
     st.pyplot(plt)
 
-visualize_usage_by_hour(hour_data)
+visualize_usage(hour_data)
 
 # Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
 # Membuat header untuk visualisasi perbandingan pengguna terdaftar dan biasa
-st.header('Perbandingan Pengguna Biasa vs Terdaftar')
+st.header('Penyewaan Sepeda Berdasarkan Cuaca')
 
 # Fungsi untuk memvisualisasikan perbandingan jumlah pengguna biasa dan terdaftar per tahun
-def visualize_user_comparison(dataframe):
-    total_users_by_year = dataframe.groupby(by='year').agg({'registered': 'sum', 'casual': 'sum'}).reset_index()
+def weather_influence(dataframe):
+    # Membuat grup berdasarkan cuaca
+    day_data['weathersit'] = day_data['weathersit'].astype('category')
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(total_users_by_year['year'], total_users_by_year['registered'], marker='o', label='Terdaftar', color='#66b3ff')
-    plt.plot(total_users_by_year['year'], total_users_by_year['casual'], marker='o', label='Biasa', color='#99ff99')
+    # Menghitung rata-rata jumlah pengguna sepeda untuk setiap kategori cuaca
+    weathersit_mean = day_data.groupby('weathersit')['count'].mean().reset_index()
 
-    plt.title('Tren Pengguna Terdaftar vs Biasa per Tahun', fontsize=16)
-    plt.xlabel('Tahun', fontsize=14)
-    plt.ylabel('Jumlah Pengguna', fontsize=14)
-    plt.legend(title='Tipe Pengguna')
-    plt.grid(True)
+    # Membuat plot bar chart
+    plt.figure(figsize=(9, 8))
+    sns.barplot(x='weathersit', y='count', data=weathersit_mean, color='#FFD700')  # Mengatur warna bar menjadi kuning
+    plt.title('Pengaruh Cuaca terhadap Jumlah Penyewaan Sepeda', fontsize=16)
+    plt.xlabel('Cuaca', fontsize=14)
+    plt.ylabel('Jumlah Pengguna Sepeda', fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.show()
     st.pyplot(plt)
 
-visualize_user_comparison(day_data)
+weather_influence(day_data)
 
 # Menambahkan spasi tambahan antar elemen visual
 st.write("")
@@ -122,9 +134,14 @@ def visualize_monthly_rentals_with_multiple_lines(dataframe):
     total_years = len(unique_years)
     fig, axes = plt.subplots(total_years, 1, figsize=(10, 6), sharex=True)
 
+    # Menentukan warna untuk setiap tahun
+    colors = ['#FFD700', '#000000']  # Kuning dan Hitam
+
     for i, year in enumerate(unique_years):
         yearly_data = monthly_rentals_data[monthly_rentals_data['year'] == year]
-        sns.lineplot(ax=axes[i], x='month', y='count', data=yearly_data, marker='o', color=sns.color_palette()[i])
+        
+        # Mengatur warna untuk setiap tahun, bergantian antara kuning dan hitam
+        sns.lineplot(ax=axes[i], x='month', y='count', data=yearly_data, marker='o', color=colors[i % len(colors)])
         
         axes[i].set_title(f'Jumlah Penyewaan Sepeda di Tahun {year}', fontsize=14)
         axes[i].set_ylabel('Jumlah Penyewaan', fontsize=12)
@@ -145,6 +162,7 @@ st.header('Penyewaan Sepeda Berdasarkan Musim')
 
 # Fungsi untuk memvisualisasikan distribusi penyewaan sepeda berdasarkan musim
 def visualize_seasonal_rentals(dataframe):
+    # Data penyewaan sepeda berdasarkan musim
     seasonal_counts = pd.Series({
         'Musim Gugur': 1061129,
         'Musim Panas': 918589,
@@ -152,11 +170,19 @@ def visualize_seasonal_rentals(dataframe):
         'Musim Semi': 471348
     }).sort_values(ascending=False)
 
+    # Membuat figure dan axis
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.pie(seasonal_counts, labels=seasonal_counts.index, autopct='%1.1f%%', startangle=90, colors=plt.cm.Paired.colors)
+
+    # Menentukan gradasi warna kuning
+    colors = ['#FFF9C4', '#FFEB3B', '#FBC02D', '#F57F20']  # Gradasi kuning dari terang ke gelap
+
+    # Membuat pie chart
+    ax.pie(seasonal_counts, labels=seasonal_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
     ax.set_title('Distribusi Penyewaan Sepeda Berdasarkan Musim', fontsize=16)
-    ax.axis('equal')
+    ax.axis('equal')  # Untuk membuat pie chart bulat
     plt.tight_layout()
+
+    # Menampilkan plot dengan Streamlit
     st.pyplot(fig)
 
 visualize_seasonal_rentals(day_data)
@@ -180,7 +206,7 @@ rfm_df = create_rfm_df(filtered_day_data)
 
 # Membuat visualisasi untuk Recency, Frequency, dan Monetary menggunakan line chart
 fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(24, 8))  # Ukuran diperbesar
-colors = ["#72BCD4"]
+colors = ["#F57F20"]
 title_fontsize = 30  # Ukuran font judul
 label_fontsize = 24  # Ukuran font label sumbu
 
