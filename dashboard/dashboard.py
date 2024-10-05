@@ -3,200 +3,171 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
-# Mengatur style untuk seaborn
-sns.set(style='dark')
+# Mengatur gaya untuk seaborn
+sns.set(style='darkgrid')
 
-# Memuat dataset
-def load_data():
-    day_df = pd.read_csv('dashboard/day_df.csv')
-    hour_df = pd.read_csv('dashboard/hour_df.csv')
-    return day_df, hour_df
+# Fungsi untuk memuat dataset
+def load_dataset():
+    day_data = pd.read_csv('day_df.csv')
+    hour_data = pd.read_csv('hour_df.csv')
+    return day_data, hour_data
 
-day_df, hour_df = load_data()
+day_data, hour_data = load_dataset()
 
-# Menyiapkan kolom 'dateday' untuk pengolahan data berdasarkan tanggal
-def prepare_date_column(df):
-    if 'dateday' in df.columns:
-        df['dateday'] = pd.to_datetime(df['dateday'])
-    elif {'year', 'month', 'day'}.issubset(df.columns):
-        df['dateday'] = pd.to_datetime(df[['year', 'month', 'day']])
+# Fungsi untuk menyiapkan kolom 'dateday' untuk pemrosesan data tanggal
+def setup_date_column(dataframe):
+    if 'dateday' in dataframe.columns:
+        dataframe['dateday'] = pd.to_datetime(dataframe['dateday'])
+    elif {'year', 'month', 'day'}.issubset(dataframe.columns):
+        dataframe['dateday'] = pd.to_datetime(dataframe[['year', 'month', 'day']])
     else:
-        st.error("Tidak ditemukan kolom 'dateday', atau kolom lain yang memungkinkan pembentukan tanggal.")
-    return df
+        st.error("Kolom 'dateday' atau kolom lain yang diperlukan untuk membuat tanggal tidak ditemukan.")
+    return dataframe
 
-day_df = prepare_date_column(day_df)
+day_data = setup_date_column(day_data)
 
 with st.sidebar:
-    # Menambahkan gambar di sidebar
+    # Menampilkan gambar di sidebar
     st.image("https://raw.githubusercontent.com/SherlyDwiPuspita/Proyek-Analisis-Data-Dicoding/main/assets/bike.jpg")
 
-# Sidebar untuk pemilihan periode waktu
-st.sidebar.title('🗓️ Pilih Periode Waktu')
-start_date = st.sidebar.date_input("Pilih Tanggal Mulai", pd.to_datetime('2011-01-01'))
-end_date = st.sidebar.date_input("Pilih Tanggal Akhir", pd.to_datetime('2012-12-31'))
+# Sidebar untuk memilih rentang tanggal
+st.sidebar.title('🗓️ Pilih Rentang Tanggal')
+start_date_input = st.sidebar.date_input("Tanggal Mulai", pd.to_datetime('2011-01-01'))
+end_date_input = st.sidebar.date_input("Tanggal Akhir", pd.to_datetime('2012-12-31'))
 
-# Menyaring dataset berdasarkan periode waktu yang dipilih
-def filter_data_by_date(df, start_date, end_date):
-    filtered_df = df[(df['dateday'] >= pd.to_datetime(start_date)) & (df['dateday'] <= pd.to_datetime(end_date))]
-    return filtered_df
+# Menyaring dataset berdasarkan rentang tanggal yang dipilih
+def filter_by_date(dataframe, start_date, end_date):
+    filtered_dataframe = dataframe[(dataframe['dateday'] >= pd.to_datetime(start_date)) & (dataframe['dateday'] <= pd.to_datetime(end_date))]
+    return filtered_dataframe
 
-filtered_day_df = filter_data_by_date(day_df, start_date, end_date)
+filtered_day_data = filter_by_date(day_data, start_date_input, end_date_input)
 
-# Membuat judul utama halaman
-st.title('Bike Sharing Analysis 🚴')
+# Judul utama halaman
+st.title('Dinamika Penyewaan Sepeda: Penelitian Mendalam tentang Tren Penggunaan dan Pola Musiman')
 
-# Mengambil informasi terkait penyewaan sepeda berdasarkan tanggal yang dipilih
-def get_rent_info(df):
-    total_rentals = df['count'].sum()
-    total_registered = df['registered'].sum()
-    total_casual = df['casual'].sum()
-    return total_rentals, total_registered, total_casual
+# Mendapatkan informasi penyewaan sepeda berdasarkan tanggal yang dipilih
+def retrieve_rent_info(dataframe):
+    total_bike_rentals = dataframe['count'].sum()
+    total_registered_users = dataframe['registered'].sum()
+    total_casual_users = dataframe['casual'].sum()
+    return total_bike_rentals, total_registered_users, total_casual_users
 
-total_rentals, total_registered, total_casual = get_rent_info(filtered_day_df)
+total_bike_rentals, total_registered_users, total_casual_users = retrieve_rent_info(filtered_day_data)
 
-# Menyusun tampilan metrik penyewaan sepeda dalam 3 kolom
+# Mengatur tampilan metrik penyewaan sepeda dalam tiga kolom
 col1, col2, col3 = st.columns(3)
 
-# Menampilkan informasi metrik untuk total penyewaan, pengguna registered, dan casual
-col1.metric(label="Total Penyewaan Sepeda", value=f"{total_rentals:,}")
-col2.metric(label="Pengguna Registered", value=f"{total_registered:,}")
-col3.metric(label="Pengguna Casual", value=f"{total_casual:,}")
+# Menampilkan informasi metrik untuk total penyewaan, pengguna terdaftar, dan pengguna biasa
+col1.metric(label="Total Penyewaan Sepeda", value=f"{total_bike_rentals:,}")
+col2.metric(label="Pengguna Terdaftar", value=f"{total_registered_users:,}")
+col3.metric(label="Pengguna Biasa", value=f"{total_casual_users:,}")
 
-# Memberikan spasi tambahan antar elemen visual
+# Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
 # Membuat header untuk visualisasi penggunaan sepeda per jam
-st.header('Distribusi Penggunaan Sepeda per Jam')
+st.header('Distribusi Penyewaan Sepeda per Jam')
 
-# Membuat visualisasi distribusi penyewaan sepeda berdasarkan jam
-def plot_usage_by_hour(hour_df):
+# Fungsi untuk memvisualisasikan distribusi penyewaan sepeda berdasarkan jam
+def visualize_usage_by_hour(hour_dataframe):
     plt.figure(figsize=(12, 6))
-    sns.barplot(x='hr', y='count', data=hour_df, palette='GnBu', ci=None)
-    plt.title('Distribusi Jumlah Pengguna Sepeda per Jam', fontsize=16)
+    sns.lineplot(x='hr', y='count', data=hour_dataframe, marker='o', color='b')
+    plt.title('Distribusi Penyewaan Sepeda per Jam', fontsize=16)
     plt.xlabel('Jam (dalam 24 jam)', fontsize=14)
     plt.ylabel('Jumlah Pengguna (per jam)', fontsize=14)
-    plt.ylim(0, 500)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.grid(True)
     plt.tight_layout()
     st.pyplot(plt)
 
-plot_usage_by_hour(hour_df)
+visualize_usage_by_hour(hour_data)
 
-# Memberikan spasi tambahan antar elemen visual
+# Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
-# Membuat header untuk visualisasi perbandingan pengguna registered dan casual
-st.header('Perbandingan Pengguna Casual vs Registered')
+# Membuat header untuk visualisasi perbandingan pengguna terdaftar dan biasa
+st.header('Perbandingan Pengguna Biasa vs Terdaftar')
 
-# Membuat visualisasi perbandingan jumlah pengguna casual dan registered per tahun
-def plot_user_type_comparison(df):
-    total_users = df.groupby(by='year').agg({'registered': 'sum', 'casual': 'sum'}).reset_index()
-    total_users = pd.melt(total_users, id_vars='year', value_vars=['registered', 'casual'], var_name='User Type', value_name='Count')
+# Fungsi untuk memvisualisasikan perbandingan jumlah pengguna biasa dan terdaftar per tahun
+def visualize_user_comparison(dataframe):
+    total_users_by_year = dataframe.groupby(by='year').agg({'registered': 'sum', 'casual': 'sum'}).reset_index()
 
     plt.figure(figsize=(10, 6))
-    sns.barplot(x='year', y='Count', hue='User Type', data=total_users, palette='GnBu')
-    plt.title('Total Pengguna Registered dan Casual per Tahun', fontsize=16)
+    plt.plot(total_users_by_year['year'], total_users_by_year['registered'], marker='o', label='Terdaftar', color='#66b3ff')
+    plt.plot(total_users_by_year['year'], total_users_by_year['casual'], marker='o', label='Biasa', color='#99ff99')
+
+    plt.title('Tren Pengguna Terdaftar vs Biasa per Tahun', fontsize=16)
     plt.xlabel('Tahun', fontsize=14)
     plt.ylabel('Jumlah Pengguna', fontsize=14)
     plt.legend(title='Tipe Pengguna')
-    plt.grid(axis='y')
-    plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x):,}'))
-    plt.tight_layout()
+    plt.grid(True)
     st.pyplot(plt)
 
-plot_user_type_comparison(day_df)
+visualize_user_comparison(day_data)
 
-# Memberikan spasi tambahan antar elemen visual
+# Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
 # Membuat header untuk visualisasi tren penyewaan sepeda
-st.header('Trend Penyewaan Sepeda')
+st.header('Tren Penyewaan Sepeda')
 
-# Membuat visualisasi tren penyewaan sepeda berdasarkan bulan dan tahun
-def plot_monthly_rentals(df):
-    monthly_rentals = df.groupby(['year', 'month'])['count'].sum().reset_index()
+# Fungsi untuk memvisualisasikan tren penyewaan sepeda berdasarkan bulan dan tahun
+def visualize_monthly_rentals_with_multiple_lines(dataframe):
+    monthly_rentals_data = dataframe.groupby(['year', 'month'])['count'].sum().reset_index()
+    monthly_rentals_data['month'] = pd.Categorical(monthly_rentals_data['month'], categories=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], ordered=True)
 
-    # Mengatur urutan bulan agar visualisasi lebih rapi
-    monthly_rentals['month'] = pd.Categorical(monthly_rentals['month'], categories=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], ordered=True)
-    plt.figure(figsize=(10, 6))
+    unique_years = monthly_rentals_data['year'].unique()
+    total_years = len(unique_years)
+    fig, axes = plt.subplots(total_years, 1, figsize=(10, 6), sharex=True)
 
-    # Membuat lineplot untuk menunjukkan tren penyewaan berdasarkan bulan dan tahun
-    custom_palette = ['#66c2a5', '#91bfdb']
-    sns.lineplot(x='month', y='count', hue='year', data=monthly_rentals, marker='o', palette=custom_palette)
+    for i, year in enumerate(unique_years):
+        yearly_data = monthly_rentals_data[monthly_rentals_data['year'] == year]
+        sns.lineplot(ax=axes[i], x='month', y='count', data=yearly_data, marker='o', color=sns.color_palette()[i])
+        
+        axes[i].set_title(f'Jumlah Penyewaan Sepeda di Tahun {year}', fontsize=14)
+        axes[i].set_ylabel('Jumlah Penyewaan', fontsize=12)
+        axes[i].grid(True)
 
-    plt.title('Jumlah Total Sepeda yang Disewakan Berdasarkan Bulan dan Tahun', fontsize=16)
-    plt.xlabel('Bulan', fontsize=14)
-    plt.ylabel('Jumlah Penyewaan', fontsize=14)
-    plt.grid(True)
-    plt.legend(title='Tahun', loc='upper right')
+    axes[-1].set_xlabel('Bulan', fontsize=14)
     plt.tight_layout()
-    st.pyplot(plt)
+    st.pyplot(fig)
 
-plot_monthly_rentals(day_df)
+visualize_monthly_rentals_with_multiple_lines(day_data)
 
-# Memberikan spasi tambahan antar elemen visual
+# Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
 # Membuat header untuk visualisasi penyewaan sepeda berdasarkan musim
 st.header('Penyewaan Sepeda Berdasarkan Musim')
 
-# Membuat visualisasi distribusi penyewaan sepeda berdasarkan musim
-def plot_season_rentals(df):
-    season_counts = pd.Series({
-        'Fall': 1061129,
-        'Summer': 918589,
-        'Winter': 841613,
-        'Spring': 471348
+# Fungsi untuk memvisualisasikan distribusi penyewaan sepeda berdasarkan musim
+def visualize_seasonal_rentals(dataframe):
+    seasonal_counts = pd.Series({
+        'Musim Gugur': 1061129,
+        'Musim Panas': 918589,
+        'Musim Dingin': 841613,
+        'Musim Semi': 471348
     }).sort_values(ascending=False)
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    palette_colors = ['#d7e7ff', '#b3d1ff', '#b3d1ff', '#b3d1ff']
-    bars = sns.barplot(x=season_counts.index, y=season_counts.values, palette=palette_colors, ax=ax)
-
-    highest_season = season_counts.idxmax()
-    for i, bar in enumerate(bars.patches):
-        if season_counts.index[i] == highest_season:
-            bar.set_facecolor('#ff4c4c')
-
+    ax.pie(seasonal_counts, labels=seasonal_counts.index, autopct='%1.1f%%', startangle=90, colors=plt.cm.Paired.colors)
     ax.set_title('Distribusi Penyewaan Sepeda Berdasarkan Musim', fontsize=16)
-    ax.set_xlabel('Musim', fontsize=14)
-    ax.set_ylabel('Jumlah Penyewaan', fontsize=14)
-    y_ticks = ax.get_yticks().astype(int)
-    ax.set_yticklabels([f'{int(y):,}' for y in y_ticks])
-    plt.xticks(rotation=45)
+    ax.axis('equal')
     plt.tight_layout()
     st.pyplot(fig)
-    plt.close(fig)
 
-plot_season_rentals(day_df)
+visualize_seasonal_rentals(day_data)
 
-# Memberikan spasi tambahan antar elemen visual
+# Menambahkan spasi tambahan antar elemen visual
 st.write("")
 st.write("")
 
 # Membuat header untuk analisis RFM (Recency, Frequency, Monetary)
 st.header('Analisis RFM')
 
-# Membuat dataframe penyewaan sepeda registered per hari
-def create_daily_registered_rent_df(df):
-    daily_registered_rent_df = df.groupby(by='dateday').agg({
-        'registered': 'sum'
-    }).reset_index()
-    return daily_registered_rent_df
-
-# Membuat dataframe penyewaan sepeda berdasarkan musim
-def create_season_rent_df(df):
-    season_rent_df = df.groupby(by='season')[['registered', 'casual']].sum().reset_index()
-    return season_rent_df
-
-daily_registered_rent_df = create_daily_registered_rent_df(filtered_day_df)
-season_rent_df = create_season_rent_df(filtered_day_df)
-
-# Membuat dataframe untuk analisis RFM
 def create_rfm_df(df):
     df['Recency'] = (df['dateday'].max() - df['dateday']).dt.days
     frequency_df = df.groupby('dateday').agg({'count': 'sum'}).reset_index()
@@ -205,20 +176,41 @@ def create_rfm_df(df):
     rfm_df = df[['dateday', 'Recency', 'Monetary']].merge(frequency_df, on='dateday', how='left')
     return rfm_df
 
-rfm_df = create_rfm_df(filtered_day_df)
+rfm_df = create_rfm_df(filtered_day_data)
 
-# Membuat visualisasi untuk Recency, Frequency, dan Monetary
-fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(30, 6))
-colors = ["#72BCD4"] * 5
+# Membuat visualisasi untuk Recency, Frequency, dan Monetary menggunakan line chart
+fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(24, 8))  # Ukuran diperbesar
+colors = ["#72BCD4"]
+title_fontsize = 30  # Ukuran font judul
+label_fontsize = 24  # Ukuran font label sumbu
 
-sns.barplot(y="Recency", x="dateday", data=rfm_df.sort_values(by="Recency", ascending=True).head(5), palette=colors, ax=ax[0])
-ax[0].set_title("Recency", loc="center", fontsize=18)
-sns.barplot(y="Frequency", x="dateday", data=rfm_df.sort_values(by="Frequency", ascending=False).head(5), palette=colors, ax=ax[1])
-ax[1].set_title("Frequency", loc="center", fontsize=18)
-sns.barplot(y="Monetary", x="dateday", data=rfm_df.sort_values(by="Monetary", ascending=False).head(5), palette=colors, ax=ax[2])
-ax[2].set_title("Monetary", loc="center", fontsize=18)
+# Plot untuk Recency
+sns.lineplot(x="dateday", y="Recency", data=rfm_df.sort_values(by="Recency", ascending=True).head(5), marker='o', color=colors[0], ax=ax[0])
+ax[0].set_title("Recency", fontsize=title_fontsize, loc="center")
+ax[0].set_ylabel("Days", fontsize=label_fontsize)
+ax[0].tick_params(labelsize=20)  # Ukuran font untuk tick
+ax[0].tick_params(axis='x', rotation=45)  # Miringkan label sumbu x 45 derajat
 
+# Plot untuk Frequency
+sns.lineplot(x="dateday", y="Frequency", data=rfm_df.sort_values(by="Frequency", ascending=False).head(5), marker='o', color=colors[0], ax=ax[1])
+ax[1].set_title("Frequency", fontsize=title_fontsize, loc="center")
+ax[1].set_ylabel("Counts", fontsize=label_fontsize)
+ax[1].tick_params(labelsize=20)  # Ukuran font untuk tick
+ax[1].tick_params(axis='x', rotation=45)  # Miringkan label sumbu x 45 derajat
+
+# Plot untuk Monetary
+sns.lineplot(x="dateday", y="Monetary", data=rfm_df.sort_values(by="Monetary", ascending=False).head(5), marker='o', color=colors[0], ax=ax[2])
+ax[2].set_title("Monetary", fontsize=title_fontsize, loc="center")
+ax[2].set_ylabel("Total Users", fontsize=label_fontsize)
+ax[2].tick_params(labelsize=20)  # Ukuran font untuk tick
+ax[2].tick_params(axis='x', rotation=45)  # Miringkan label sumbu x 45 derajat
+
+plt.tight_layout()
 st.pyplot(fig)
+
+# Mengakhiri aplikasi Streamlit
+if __name__ == '__main__':
+    st.write("Terima kasih telah menggunakan aplikasi ini!")
 
 # Menambahkan catatan copyright di akhir halaman
 st.caption('Copyright (c) Sherly Dwi Puspita 2024')
