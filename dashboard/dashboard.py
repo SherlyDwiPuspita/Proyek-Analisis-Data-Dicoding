@@ -32,7 +32,7 @@ with st.sidebar:
 
 # Sidebar untuk memilih rentang tanggal
 st.sidebar.title('🗓️ Pilih Rentang Tanggal')
-start_date_input = st.sidebar.date_input("Tanggal Mulai", pd.to_datetime('2011-01-01'))
+start_date_input = st.sidebar.date_input("Tanggal Awal", pd.to_datetime('2011-01-01'))
 end_date_input = st.sidebar.date_input("Tanggal Akhir", pd.to_datetime('2012-12-31'))
 
 # Menyaring dataset berdasarkan rentang tanggal yang dipilih
